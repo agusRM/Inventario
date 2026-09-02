@@ -120,13 +120,6 @@ def crud_router(model, create_schema, read_schema, path: str):
     return router
 
 
-app.include_router(crud_router(models.Brand, schemas.BrandCreate, schemas.BrandRead, "/brands"))
-app.include_router(crud_router(models.VehicleModel, schemas.VehicleModelCreate, schemas.VehicleModelRead, "/models"))
-app.include_router(crud_router(models.Warehouse, schemas.WarehouseCreate, schemas.WarehouseRead, "/warehouses"))
-app.include_router(crud_router(models.Shelf, schemas.ShelfCreate, schemas.ShelfRead, "/shelves"))
-app.include_router(crud_router(models.Supplier, schemas.SupplierCreate, schemas.SupplierRead, "/suppliers"))
-
-
 def hash_password(password: str, salt: str | None = None) -> str:
     password_salt = salt or secrets.token_hex(16)
     digest = hashlib.pbkdf2_hmac("sha256", password.encode(), password_salt.encode(), 120_000)
@@ -238,41 +231,32 @@ def save_uploaded_photos(files: list[UploadFile]) -> list[str]:
     return saved_paths
 
 
-def validate_part_references(payload: schemas.PartCreate, db: Session):
-    if db.get(models.Brand, payload.brand_id) is None:
-        raise HTTPException(status_code=422, detail="La marca seleccionada no existe")
-    if payload.shelf_id is not None and db.get(models.Shelf, payload.shelf_id) is None:
-        raise HTTPException(status_code=422, detail="El anaquel seleccionado no existe")
-    if payload.supplier_id is not None and db.get(models.Supplier, payload.supplier_id) is None:
-        raise HTTPException(status_code=422, detail="El proveedor seleccionado no existe")
-
-
 def part_from_form(
     name: str = Form(...),
     part_number: str = Form(...),
-    brand_id: int = Form(...),
+    brand_name: str = Form(...),
     compatible_models: str | None = Form(None),
     years: str | None = Form(None),
     entry_date: str = Form(...),
     stock: int = Form(0),
     minimum_stock: int = Form(0),
     price: float = Form(0),
-    shelf_id: int | None = Form(None),
-    supplier_id: int | None = Form(None),
+    shelf: str | None = Form(None),
+    supplier: str | None = Form(None),
 ):
     try:
         return schemas.PartCreate(
             name=name,
             part_number=part_number,
-            brand_id=brand_id,
+            brand_name=brand_name,
             compatible_models=compatible_models,
             years=years,
             entry_date=entry_date,
             stock=stock,
             minimum_stock=minimum_stock,
             price=price,
-            shelf_id=shelf_id,
-            supplier_id=supplier_id,
+            shelf=shelf,
+            supplier=supplier,
         )
     except Exception as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
@@ -285,10 +269,9 @@ def create_part(
     db: Session = Depends(get_db),
     _: models.User = Depends(get_current_user),
 ):
-    validate_part_references(payload, db)
     values = payload.model_dump(exclude={"photos"})
     part = models.Part(**values)
-    part.photos = [models.PartPhoto(url=url) for url in save_uploaded_photos(photos)]
+    part.photos = save_uploaded_photos(photos)
     db.add(part)
     db.commit()
     db.refresh(part)
@@ -314,12 +297,10 @@ def update_part(
     part = db.get(models.Part, part_id)
     if part is None:
         raise HTTPException(status_code=404, detail="Repuesto no encontrado")
-    validate_part_references(payload, db)
     for field, value in payload.model_dump(exclude={"photos"}).items():
         setattr(part, field, value)
     if photos:
-        part.photos.clear()
-        part.photos.extend(models.PartPhoto(url=url) for url in save_uploaded_photos(photos))
+        part.photos = save_uploaded_photos(photos)
     db.commit()
     db.refresh(part)
     return schemas.PartRead.from_part(part)

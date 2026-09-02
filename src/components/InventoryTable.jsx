@@ -76,8 +76,8 @@ function InventoryTable() {
                     </div>
                   </td>
                   <td>{item.minimum_stock}</td>
-                  <td>{item.shelf_id || "-"}</td>
-                  <td>{item.supplier_id || "-"}</td>
+                  <td>{item.shelf || "-"}</td>
+                  <td>{item.supplier || "-"}</td>
                   <td>{formatCurrency(Number(item.price))}</td>
                   <td>{formatCurrency(totalValue)}</td>
                 </tr>

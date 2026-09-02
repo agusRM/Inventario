@@ -56,37 +56,54 @@ function CatalogPage({ onAdminLogin, onNavigate }) {
       </div>
 
       {error ? <div className="catalog-empty"><strong>{error}</strong><p>Verifica que la API y MySQL estén encendidos.</p></div> : visibleItems.length > 0 ? (
-        <div className="catalog-grid">
-          {visibleItems.map((item) => (
-            <article className="catalog-item" key={item.part_number}>
-              <div className="catalog-photo-gallery">
-                {item.photos.map((photo, index) => (
-                  <img
-                    key={photo}
-                    src={mediaUrl(photo)}
-                    alt={`${item.name}${item.brand_name ? ` marca ${item.brand_name}` : ""}, pieza ${item.part_number}, foto ${index + 1}`}
-                  />
-                ))}
-              </div>
-              <div className="catalog-item-content">
-                <div className="catalog-item-title">
-                  <span>{item.brand_name || "Sin marca"}</span>
-                  <strong>{item.name}</strong>
-                </div>
-                <dl className="catalog-details">
-                  <div><dt>Pieza</dt><dd>{item.part_number}</dd></div>
-                  <div><dt>Modelos</dt><dd>{item.compatible_models || "-"}</dd></div>
-                  <div><dt>Años</dt><dd>{item.years}</dd></div>
-                </dl>
-                <div className="catalog-item-footer">
-                  <strong>{formatCurrency(Number(item.price))}</strong>
-                  <span className={item.stock <= item.minimum_stock ? "catalog-stock low" : "catalog-stock"}>
-                    {item.stock > item.minimum_stock ? "Disponible" : "No disponible"}
-                  </span>
-                </div>
-              </div>
-            </article>
-          ))}
+        <div className="table-wrapper catalog-table-wrapper">
+          <table className="inventory-table catalog-table">
+            <thead>
+              <tr>
+                <th>Fotos</th>
+                <th>Repuesto</th>
+                <th>Marca</th>
+                <th>Número de pieza</th>
+                <th>Modelos compatibles</th>
+                <th>Años</th>
+                <th>Precio</th>
+                <th>Disponibilidad</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleItems.map((item) => {
+                const available = item.stock > item.minimum_stock;
+
+                return (
+                  <tr key={item.part_number}>
+                    <td>
+                      <div className="photo-gallery catalog-photo-gallery">
+                        {item.photos.map((photo, index) => (
+                          <img
+                            key={photo}
+                            className="product-photo"
+                            src={mediaUrl(photo)}
+                            alt={`${item.name}${item.brand_name ? ` marca ${item.brand_name}` : ""}, pieza ${item.part_number}, foto ${index + 1}`}
+                          />
+                        ))}
+                      </div>
+                    </td>
+                    <td><strong>{item.name}</strong></td>
+                    <td>{item.brand_name || "Sin marca"}</td>
+                    <td>{item.part_number}</td>
+                    <td>{item.compatible_models || "-"}</td>
+                    <td>{item.years}</td>
+                    <td><strong>{formatCurrency(Number(item.price))}</strong></td>
+                    <td>
+                      <span className={available ? "catalog-stock" : "catalog-stock low"}>
+                        {available ? "Disponible" : "No disponible"}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       ) : (
         <div className="catalog-empty">

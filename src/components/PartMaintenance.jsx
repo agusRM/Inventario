@@ -11,8 +11,8 @@ const emptyForm = {
   stock: 0,
   minimum_stock: 0,
   price: 0,
-  shelf_id: "",
-  supplier_id: "",
+  shelf: "",
+  supplier: "",
   photos: [],
 };
 
@@ -21,7 +21,6 @@ const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif
 
 function PartMaintenance({ role }) {
   const [parts, setParts] = useState([]);
-  const [brands, setBrands] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
   const [message, setMessage] = useState("");
@@ -29,9 +28,7 @@ function PartMaintenance({ role }) {
 
   const loadData = async () => {
     try {
-      const [loadedParts, loadedBrands] = await Promise.all([api.getParts(), api.getBrands()]);
-      setParts(loadedParts);
-      setBrands(loadedBrands);
+      setParts(await api.getParts());
       setError("");
     } catch (loadError) {
       setError(loadError.message);
@@ -60,22 +57,18 @@ function PartMaintenance({ role }) {
         throw new Error("Cada foto debe ser JPG, PNG, WEBP o GIF y pesar máximo 5 MB.");
       }
       const brandName = form.brand_name.trim();
-      let brand = brands.find((item) => item.name.toLowerCase() === brandName.toLowerCase());
-      if (!brand) {
-        brand = await api.createBrand({ name: brandName });
-      }
       const payload = new FormData();
       payload.append("name", form.name.trim());
       payload.append("part_number", form.part_number.trim());
-      payload.append("brand_id", brand.id);
+      payload.append("brand_name", brandName);
       payload.append("compatible_models", form.compatible_models.trim());
       payload.append("years", form.years.trim());
       payload.append("entry_date", form.entry_date);
       payload.append("stock", form.stock);
       payload.append("minimum_stock", form.minimum_stock);
       payload.append("price", form.price);
-      if (form.shelf_id) payload.append("shelf_id", form.shelf_id);
-      if (form.supplier_id) payload.append("supplier_id", form.supplier_id);
+      if (form.shelf) payload.append("shelf", form.shelf.trim());
+      if (form.supplier) payload.append("supplier", form.supplier.trim());
       form.photos.forEach((photo) => payload.append("photos", photo));
       if (editingId) {
         await api.updatePart(editingId, payload);
@@ -103,8 +96,8 @@ function PartMaintenance({ role }) {
       stock: part.stock,
       minimum_stock: part.minimum_stock,
       price: part.price,
-      shelf_id: part.shelf_id || "",
-      supplier_id: part.supplier_id || "",
+      shelf: part.shelf || "",
+      supplier: part.supplier || "",
       photos: [],
     });
     setMessage("");
@@ -133,15 +126,15 @@ function PartMaintenance({ role }) {
       <form className="maintenance-form" onSubmit={handleSubmit}>
         <div className="field"><label htmlFor="part-name">Nombre</label><input id="part-name" required value={form.name} onChange={(event) => updateField("name", event.target.value)} /></div>
         <div className="field"><label htmlFor="part-number">Número de pieza</label><input id="part-number" required value={form.part_number} onChange={(event) => updateField("part_number", event.target.value)} /></div>
-        <div className="field"><label htmlFor="part-brand">Marca</label><input id="part-brand" required list="brand-options" value={form.brand_name} onChange={(event) => updateField("brand_name", event.target.value)} /><datalist id="brand-options">{brands.map((brand) => <option key={brand.id} value={brand.name} />)}</datalist></div>
+        <div className="field"><label htmlFor="part-brand">Marca</label><input id="part-brand" required value={form.brand_name} onChange={(event) => updateField("brand_name", event.target.value)} /></div>
         <div className="field"><label htmlFor="part-models">Modelos compatibles</label><input id="part-models" value={form.compatible_models} onChange={(event) => updateField("compatible_models", event.target.value)} /></div>
         <div className="field"><label htmlFor="part-years">Años</label><input id="part-years" value={form.years} onChange={(event) => updateField("years", event.target.value)} /></div>
         <div className="field"><label htmlFor="part-date">Fecha de ingreso</label><input id="part-date" type="date" required value={form.entry_date} onChange={(event) => updateField("entry_date", event.target.value)} /></div>
         <div className="field"><label htmlFor="part-stock">Stock</label><input id="part-stock" type="number" min="0" required value={form.stock} onChange={(event) => updateField("stock", event.target.value)} /></div>
         <div className="field"><label htmlFor="part-minimum">Stock mínimo</label><input id="part-minimum" type="number" min="0" required value={form.minimum_stock} onChange={(event) => updateField("minimum_stock", event.target.value)} /></div>
         <div className="field"><label htmlFor="part-price">Precio</label><input id="part-price" type="number" min="0" step="0.01" required value={form.price} onChange={(event) => updateField("price", event.target.value)} /></div>
-        <div className="field"><label htmlFor="part-shelf">ID de anaquel</label><input id="part-shelf" type="number" min="1" value={form.shelf_id} onChange={(event) => updateField("shelf_id", event.target.value)} /></div>
-        <div className="field"><label htmlFor="part-supplier">ID de proveedor</label><input id="part-supplier" type="number" min="1" value={form.supplier_id} onChange={(event) => updateField("supplier_id", event.target.value)} /></div>
+        <div className="field"><label htmlFor="part-shelf">Anaquel</label><input id="part-shelf" value={form.shelf} onChange={(event) => updateField("shelf", event.target.value)} /></div>
+        <div className="field"><label htmlFor="part-supplier">Proveedor</label><input id="part-supplier" value={form.supplier} onChange={(event) => updateField("supplier", event.target.value)} /></div>
         <div className="field maintenance-form-wide"><label htmlFor="part-photos">Fotos</label><input id="part-photos" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple onChange={(event) => updateField("photos", Array.from(event.target.files || []))} /><small>Selecciona una o varias imágenes de máximo 5 MB cada una.</small></div>
         <div className="maintenance-actions">
           <button type="submit" className="btn-primary">{editingId ? "Guardar cambios" : "Crear repuesto"}</button>

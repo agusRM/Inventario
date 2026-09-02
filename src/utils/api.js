@@ -24,8 +24,6 @@ export const api = {
   deletePart: (id) => request(`/parts/${id}`, { method: "DELETE" }),
   saveSession: (auth) => sessionStorage.setItem("access_token", auth.access_token),
   clearSession: () => sessionStorage.removeItem("access_token"),
-  getBrands: () => request("/brands"),
-  createBrand: (brand) => request("/brands", { method: "POST", body: JSON.stringify(brand) }),
   getUsers: () => request("/users"),
   login: (credentials) => request("/auth/login", {
     method: "POST",
