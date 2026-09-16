@@ -94,6 +94,52 @@ Las fotos se seleccionan directamente desde el formulario de mantenimiento, se g
 npm run build
 ```
 
+## Publicación recomendada
+
+La configuración incluida está preparada para esta arquitectura:
+
+- **Vercel:** frontend React/Vite.
+- **Railway:** API FastAPI y servicio MySQL en el mismo proyecto.
+- **GoDaddy:** DNS del dominio personalizado.
+
+### 1. API y MySQL en Railway
+
+1. Añade un servicio MySQL al proyecto de Railway.
+2. Añade otro servicio desde este repositorio de GitHub. Railway usará
+   `railway.json` y `backend/Dockerfile` para construir la API.
+3. Configura estas variables en el servicio de la API:
+   - `DATABASE_URL`: referencia la variable `MYSQL_URL` del servicio MySQL.
+   - `SECRET_KEY`: una cadena aleatoria larga y privada.
+   - `SESSION_EXPIRE_MINUTES`: `480`.
+   - `CORS_ORIGINS`: URL de producción de Vercel, sin `/` al final.
+   - `UPLOAD_DIR`: `/data/uploads`.
+4. Crea un volumen persistente y móntalo en `/data` para conservar las fotos.
+5. Genera un dominio público para la API y comprueba `https://TU-API/health`.
+
+El código convierte automáticamente una URL `mysql://` de Railway al driver
+`mysql+pymysql://` instalado en el proyecto.
+
+### 2. Frontend en Vercel
+
+1. Importa este repositorio y deja el directorio raíz en `.`.
+2. Vercel detectará Vite; el comando es `npm run build` y la salida es `dist`.
+3. Crea `VITE_API_URL` con el dominio público de Railway, sin `/` al final.
+4. Despliega nuevamente después de guardar la variable.
+
+`vercel.json` permite abrir directamente rutas como `/admin`, `/faq` y
+`/privacidad` sin recibir un error 404.
+
+### 3. Dominio de GoDaddy
+
+Añade primero el dominio en **Vercel > Project > Settings > Domains**. Vercel
+mostrará los registros DNS exactos que debes copiar en GoDaddy. Usa el dominio
+principal y `www` para el frontend. Si quieres un subdominio para la API
+(`api.tudominio.com`), configúralo en Railway y copia también su registro DNS.
+
+Cuando el dominio definitivo esté activo, actualiza `CORS_ORIGINS` en Railway
+para incluir tanto el dominio de Vercel como el dominio personalizado,
+separados por coma, y vuelve a desplegar la API.
+
 ## Cómo funciona
 
 - El componente `App.jsx` controla el estado global de autenticación y los datos del formulario.

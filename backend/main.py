@@ -26,14 +26,19 @@ SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-change-this-secret")
 SESSION_EXPIRE_MINUTES = int(os.getenv("SESSION_EXPIRE_MINUTES", "480"))
 
 app = FastAPI(title="SuRepuesto | Palmares API", version="1.0.0")
-UPLOAD_DIR = Path(__file__).parent / "uploads"
+UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", Path(__file__).parent / "uploads"))
 MAX_PHOTO_SIZE = 5 * 1024 * 1024
 MAX_PHOTOS_PER_PART = 8
-UPLOAD_DIR.mkdir(exist_ok=True)
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+cors_origins = [
+    origin.strip().rstrip("/")
+    for origin in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
+    if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
