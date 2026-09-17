@@ -17,6 +17,7 @@ const emptyForm = {
 };
 
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
+const MAX_PHOTOS = 8;
 const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 function PartMaintenance({ role }) {
@@ -41,6 +42,15 @@ function PartMaintenance({ role }) {
 
   const updateField = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const addPhotos = (selectedFiles) => {
+    const files = Array.from(selectedFiles || []);
+    if (!files.length) return;
+    setForm((current) => ({
+      ...current,
+      photos: [...current.photos, ...files].slice(0, MAX_PHOTOS),
+    }));
   };
 
   const resetForm = () => {
@@ -135,7 +145,7 @@ function PartMaintenance({ role }) {
         <div className="field"><label htmlFor="part-price">Precio</label><input id="part-price" type="number" min="0" step="0.01" required value={form.price} onChange={(event) => updateField("price", event.target.value)} /></div>
         <div className="field"><label htmlFor="part-shelf">Anaquel</label><input id="part-shelf" value={form.shelf} onChange={(event) => updateField("shelf", event.target.value)} /></div>
         <div className="field"><label htmlFor="part-supplier">Proveedor</label><input id="part-supplier" value={form.supplier} onChange={(event) => updateField("supplier", event.target.value)} /></div>
-        <div className="field maintenance-form-wide"><label htmlFor="part-photos">Fotos</label><input id="part-photos" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple onChange={(event) => updateField("photos", Array.from(event.target.files || []))} /><small>Selecciona una o varias imágenes de máximo 5 MB cada una.</small></div>
+        <div className="field maintenance-form-wide"><label htmlFor="part-photos">Fotos</label><input id="part-photos" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple onChange={(event) => addPhotos(event.target.files)} /><small>Selecciona varias imágenes desde la galería.</small><label htmlFor="part-camera">Tomar fotos</label><input id="part-camera" type="file" accept="image/jpeg,image/png,image/webp,image/gif" capture="environment" onChange={(event) => addPhotos(event.target.files)} /><small>Toma una foto y repite para agregar más, hasta 8 fotos de máximo 5 MB cada una.</small></div>
         <div className="maintenance-actions">
           <button type="submit" className="btn-primary">{editingId ? "Guardar cambios" : "Crear repuesto"}</button>
           {editingId && <button type="button" className="btn-secondary" onClick={resetForm}>Cancelar edición</button>}
