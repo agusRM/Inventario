@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, mediaUrl } from "../utils/api.js";
+import MessageBar from "./MessageBar.jsx";
 
 const emptyForm = {
   name: "",
@@ -10,7 +11,7 @@ const emptyForm = {
   entry_date: new Date().toISOString().slice(0, 10),
   stock: 0,
   minimum_stock: 0,
-  price: 0,
+  price: "",
   shelf: "",
   supplier: "",
   photos: [],
@@ -26,6 +27,13 @@ function PartMaintenance({ role }) {
   const [editingId, setEditingId] = useState(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const feedbackRef = useRef(null);
+
+  useEffect(() => {
+    if (message || error) {
+      feedbackRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [message, error]);
 
   const loadData = async () => {
     try {
@@ -63,6 +71,27 @@ function PartMaintenance({ role }) {
     setError("");
     setMessage("");
     try {
+      const requiredFields = [
+        ["Nombre", form.name],
+        ["Número de pieza", form.part_number],
+        ["Marca", form.brand_name],
+        ["Fecha de ingreso", form.entry_date],
+        ["Stock", form.stock],
+        ["Stock mínimo", form.minimum_stock],
+      ];
+      const missingField = requiredFields.find(([, value]) => !String(value).trim());
+      if (missingField) {
+        throw new Error(`Completa el campo ${missingField[0]}.`);
+      }
+      if (Number(form.stock) < 0 || !Number.isInteger(Number(form.stock))) {
+        throw new Error("El stock debe ser un número entero mayor o igual a 0.");
+      }
+      if (Number(form.minimum_stock) < 0 || !Number.isInteger(Number(form.minimum_stock))) {
+        throw new Error("El stock mínimo debe ser un número entero mayor o igual a 0.");
+      }
+      if (String(form.price).trim() && Number(form.price) < 0) {
+        throw new Error("El precio debe ser mayor o igual a 0.");
+      }
       if (form.photos.some((photo) => !ALLOWED_PHOTO_TYPES.includes(photo.type) || photo.size > MAX_PHOTO_SIZE)) {
         throw new Error("Cada foto debe ser JPG, PNG, WEBP o GIF y pesar máximo 5 MB.");
       }
@@ -76,7 +105,7 @@ function PartMaintenance({ role }) {
       payload.append("entry_date", form.entry_date);
       payload.append("stock", form.stock);
       payload.append("minimum_stock", form.minimum_stock);
-      payload.append("price", form.price);
+      if (String(form.price).trim()) payload.append("price", form.price);
       if (form.shelf) payload.append("shelf", form.shelf.trim());
       if (form.supplier) payload.append("supplier", form.supplier.trim());
       form.photos.forEach((photo) => payload.append("photos", photo));
@@ -105,7 +134,7 @@ function PartMaintenance({ role }) {
       entry_date: part.entry_date,
       stock: part.stock,
       minimum_stock: part.minimum_stock,
-      price: part.price,
+      price: part.price ?? "",
       shelf: part.shelf || "",
       supplier: part.supplier || "",
       photos: [],
@@ -133,16 +162,20 @@ function PartMaintenance({ role }) {
         <p>Crear, editar y eliminar repuestos almacenados en MySQL.</p>
       </div>
 
+      <div ref={feedbackRef} className="maintenance-feedback" aria-live="polite">
+        <MessageBar message={error ? { type: "error", text: error } : message ? { type: "success", text: message } : null} />
+      </div>
+
       <form className="maintenance-form" onSubmit={handleSubmit}>
-        <div className="field"><label htmlFor="part-name">Nombre</label><input id="part-name" required value={form.name} onChange={(event) => updateField("name", event.target.value)} /></div>
-        <div className="field"><label htmlFor="part-number">Número de pieza</label><input id="part-number" required value={form.part_number} onChange={(event) => updateField("part_number", event.target.value)} /></div>
-        <div className="field"><label htmlFor="part-brand">Marca</label><input id="part-brand" required value={form.brand_name} onChange={(event) => updateField("brand_name", event.target.value)} /></div>
+        <div className="field"><label htmlFor="part-name">Nombre</label><input id="part-name" value={form.name} onChange={(event) => updateField("name", event.target.value)} /></div>
+        <div className="field"><label htmlFor="part-number">Número de pieza</label><input id="part-number" value={form.part_number} onChange={(event) => updateField("part_number", event.target.value)} /></div>
+        <div className="field"><label htmlFor="part-brand">Marca</label><input id="part-brand" value={form.brand_name} onChange={(event) => updateField("brand_name", event.target.value)} /></div>
         <div className="field"><label htmlFor="part-models">Modelos compatibles</label><input id="part-models" value={form.compatible_models} onChange={(event) => updateField("compatible_models", event.target.value)} /></div>
         <div className="field"><label htmlFor="part-years">Años</label><input id="part-years" value={form.years} onChange={(event) => updateField("years", event.target.value)} /></div>
-        <div className="field"><label htmlFor="part-date">Fecha de ingreso</label><input id="part-date" type="date" required value={form.entry_date} onChange={(event) => updateField("entry_date", event.target.value)} /></div>
-        <div className="field"><label htmlFor="part-stock">Stock</label><input id="part-stock" type="number" min="0" required value={form.stock} onChange={(event) => updateField("stock", event.target.value)} /></div>
-        <div className="field"><label htmlFor="part-minimum">Stock mínimo</label><input id="part-minimum" type="number" min="0" required value={form.minimum_stock} onChange={(event) => updateField("minimum_stock", event.target.value)} /></div>
-        <div className="field"><label htmlFor="part-price">Precio</label><input id="part-price" type="number" min="0" step="0.01" required value={form.price} onChange={(event) => updateField("price", event.target.value)} /></div>
+        <div className="field"><label htmlFor="part-date">Fecha de ingreso</label><input id="part-date" type="date" value={form.entry_date} onChange={(event) => updateField("entry_date", event.target.value)} /></div>
+        <div className="field"><label htmlFor="part-stock">Stock</label><input id="part-stock" type="number" min="0" value={form.stock} onChange={(event) => updateField("stock", event.target.value)} /></div>
+        <div className="field"><label htmlFor="part-minimum">Stock mínimo</label><input id="part-minimum" type="number" min="0" value={form.minimum_stock} onChange={(event) => updateField("minimum_stock", event.target.value)} /></div>
+        <div className="field"><label htmlFor="part-price">Precio <span className="optional-field">(opcional)</span></label><input id="part-price" type="number" min="0" step="0.01" value={form.price} onChange={(event) => updateField("price", event.target.value)} /></div>
         <div className="field"><label htmlFor="part-shelf">Anaquel</label><input id="part-shelf" value={form.shelf} onChange={(event) => updateField("shelf", event.target.value)} /></div>
         <div className="field"><label htmlFor="part-supplier">Proveedor</label><input id="part-supplier" value={form.supplier} onChange={(event) => updateField("supplier", event.target.value)} /></div>
         <div className="field maintenance-form-wide"><label htmlFor="part-photos">Fotos</label><input id="part-photos" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple onChange={(event) => addPhotos(event.target.files)} /><small>Selecciona varias imágenes desde la galería.</small><label htmlFor="part-camera">Tomar fotos</label><input id="part-camera" type="file" accept="image/jpeg,image/png,image/webp,image/gif" capture="environment" onChange={(event) => addPhotos(event.target.files)} /><small>Toma una foto y repite para agregar más, hasta 8 fotos de máximo 5 MB cada una.</small></div>
@@ -152,8 +185,6 @@ function PartMaintenance({ role }) {
         </div>
       </form>
 
-      {message && <p className="success-message">{message}</p>}
-      {error && <p className="error-message">{error}</p>}
       <div className="table-wrapper">
         <table className="inventory-table">
           <thead><tr><th>Repuesto</th><th>Marca</th><th>Pieza</th><th>Stock</th><th>Precio</th><th>Acciones</th></tr></thead>

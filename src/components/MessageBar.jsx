@@ -5,7 +5,7 @@ function MessageBar({ message }) {
   }
 
   return (
-    <div className={`message-bar ${message.type}`} role="status">
+    <div className={`message-bar ${message.type}`} role={message.type === "error" ? "alert" : "status"}>
       {message.text}
     </div>
   );

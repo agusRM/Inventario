@@ -607,10 +607,21 @@ button {
 }
 
 .message-bar {
-  margin-top: 20px;
+  margin: 0;
   padding: 14px 16px;
   border-radius: 16px;
   font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+
+.maintenance-feedback {
+  min-height: 0;
+  margin-bottom: 16px;
+  scroll-margin: 16px;
+}
+
+.maintenance-feedback:empty {
+  margin-bottom: 0;
 }
 
 .message-bar.success {
@@ -681,8 +692,15 @@ button {
 }
 
 .maintenance-form .field input {
+  width: 100%;
   padding: 10px 12px;
   border-radius: 8px;
+}
+
+.optional-field {
+  color: rgba(235, 245, 255, 0.62);
+  font-size: 0.82em;
+  font-weight: 400;
 }
 
 .maintenance-form small {
