@@ -6,13 +6,28 @@ async function request(path, options = {}) {
   const isFormData = options.body instanceof FormData;
   const token = sessionStorage.getItem("access_token");
   const authorization = token ? { Authorization: `Bearer ${token}` } : {};
-  const response = await fetch(`${API_URL}${path}`, {
-    headers: isFormData ? { ...authorization, ...(options.headers || {}) } : { "Content-Type": "application/json", ...authorization, ...(options.headers || {}) },
-    ...options,
-  });
+  let response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      headers: isFormData ? { ...authorization, ...(options.headers || {}) } : { "Content-Type": "application/json", ...authorization, ...(options.headers || {}) },
+      ...options,
+    });
+  } catch (networkError) {
+    throw new Error(
+      `No se pudo conectar con el servidor (${API_URL}). Verifica que el backend esté encendido, que VITE_API_URL sea correcto y que CORS permita este sitio. Detalle: ${networkError.message}`,
+    );
+  }
   const data = await response.json().catch(() => null);
   if (!response.ok) {
-    throw new Error(data?.detail || "No se pudo completar la solicitud");
+    const detail = Array.isArray(data?.detail)
+      ? data.detail.map((item) => item.msg || item.message || JSON.stringify(item)).join("; ")
+      : data?.detail;
+    const statusMessage = response.status === 401
+      ? "La sesión no es válida o expiró. Inicia sesión nuevamente."
+      : response.status === 403
+        ? "No tienes permisos para realizar esta operación."
+        : detail || `El servidor respondió con el estado ${response.status}.`;
+    throw new Error(`No se pudo cargar la información: ${statusMessage}`);
   }
   return data;
 }
