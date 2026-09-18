@@ -27,7 +27,7 @@ async function request(path, options = {}) {
       : response.status === 403
         ? "No tienes permisos para realizar esta operación."
         : detail || `El servidor respondió con el estado ${response.status}.`;
-    throw new Error(`No se pudo cargar la información: ${statusMessage}`);
+    throw new Error(`No se pudo completar la solicitud: ${statusMessage}`);
   }
   return data;
 }

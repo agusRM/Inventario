@@ -28,6 +28,7 @@ function PartMaintenance({ role }) {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const feedbackRef = useRef(null);
+  const formRef = useRef(null);
 
   useEffect(() => {
     if (message || error) {
@@ -109,7 +110,7 @@ function PartMaintenance({ role }) {
       if (form.shelf) payload.append("shelf", form.shelf.trim());
       if (form.supplier) payload.append("supplier", form.supplier.trim());
       form.photos.forEach((photo) => payload.append("photos", photo));
-      if (editingId) {
+      if (editingId !== null) {
         await api.updatePart(editingId, payload);
         setMessage("Repuesto actualizado correctamente.");
       } else {
@@ -141,6 +142,10 @@ function PartMaintenance({ role }) {
     });
     setMessage("");
     setError("");
+    requestAnimationFrame(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.getElementById("part-name")?.focus();
+    });
   };
 
   const handleDelete = async (part) => {
@@ -166,7 +171,7 @@ function PartMaintenance({ role }) {
         <MessageBar message={error ? { type: "error", text: error } : message ? { type: "success", text: message } : null} />
       </div>
 
-      <form className="maintenance-form" onSubmit={handleSubmit}>
+      <form ref={formRef} className="maintenance-form" onSubmit={handleSubmit}>
         <div className="field"><label htmlFor="part-name">Nombre</label><input id="part-name" value={form.name} onChange={(event) => updateField("name", event.target.value)} /></div>
         <div className="field"><label htmlFor="part-number">Número de pieza</label><input id="part-number" value={form.part_number} onChange={(event) => updateField("part_number", event.target.value)} /></div>
         <div className="field"><label htmlFor="part-brand">Marca</label><input id="part-brand" value={form.brand_name} onChange={(event) => updateField("brand_name", event.target.value)} /></div>
@@ -180,8 +185,8 @@ function PartMaintenance({ role }) {
         <div className="field"><label htmlFor="part-supplier">Proveedor <span className="optional-field">(opcional)</span></label><input id="part-supplier" value={form.supplier} onChange={(event) => updateField("supplier", event.target.value)} /></div>
         <div className="field maintenance-form-wide"><label htmlFor="part-photos">Fotos</label><input id="part-photos" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple onChange={(event) => addPhotos(event.target.files)} /><small>Selecciona varias imágenes desde la galería.</small><label htmlFor="part-camera">Tomar fotos</label><input id="part-camera" type="file" accept="image/jpeg,image/png,image/webp,image/gif" capture="environment" onChange={(event) => addPhotos(event.target.files)} /><small>Toma una foto y repite para agregar más, hasta 8 fotos de máximo 5 MB cada una.</small></div>
         <div className="maintenance-actions">
-          <button type="submit" className="btn-primary">{editingId ? "Guardar cambios" : "Crear repuesto"}</button>
-          {editingId && <button type="button" className="btn-secondary" onClick={resetForm}>Cancelar edición</button>}
+          <button type="submit" className="btn-primary">{editingId !== null ? "Guardar cambios" : "Crear repuesto"}</button>
+          {editingId !== null && <button type="button" className="btn-secondary" onClick={resetForm}>Cancelar edición</button>}
         </div>
       </form>
 

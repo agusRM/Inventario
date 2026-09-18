@@ -1,0 +1,1 @@
+Logos para identificar marcas de vehículos en SuRepuesto.\nLas marcas y emblemas pertenecen a sus respectivos titulares.\nÚsalos solo para identificación/compatibilidad de vehículos y conserva FUENTES_Y_USO.csv.\n

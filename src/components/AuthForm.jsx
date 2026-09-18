@@ -13,6 +13,7 @@ function AuthForm({ mode, formData, onFieldChange, onSubmit }) {
           value={formData.username}
           onChange={(event) => onFieldChange("username", event.target.value)}
           placeholder="Nombre de usuario"
+          maxLength={80}
           autoComplete="username"
         />
       </div>
@@ -41,6 +42,7 @@ function AuthForm({ mode, formData, onFieldChange, onSubmit }) {
           value={formData.password}
           onChange={(event) => onFieldChange("password", event.target.value)}
           placeholder="********"
+          maxLength={128}
           autoComplete={isLogin ? "current-password" : "new-password"}
         />
       </div>
@@ -55,6 +57,7 @@ function AuthForm({ mode, formData, onFieldChange, onSubmit }) {
             value={formData.confirmPassword}
             onChange={(event) => onFieldChange("confirmPassword", event.target.value)}
             placeholder="********"
+            maxLength={128}
             autoComplete="new-password"
           />
         </div>

@@ -5,7 +5,7 @@ import CatalogPage from "./components/CatalogPage.jsx";
 import MessageBar from "./components/MessageBar.jsx";
 import useJqueryEffects from "./hooks/useJqueryEffects.jsx";
 import { authModes, initialFormState } from "./constants/auth.js";
-import { isValidEmail } from "./utils/validation.js";
+import { isValidEmail, isValidUsername } from "./utils/validation.js";
 import { api } from "./utils/api.js";
 import PublicInfoPage, { NotFoundPage, ThankYouPage } from "./components/PublicInfoPage.jsx";
 import PrivacyPage from "./components/PrivacyPage.jsx";
@@ -83,8 +83,13 @@ function App() {
   const handleLogin = async (event) => {
     event.preventDefault();
 
-    if (!formData.username || !formData.password) {
-      showMessage("error", "Por favor completa usuario y contraseña.");
+    const username = formData.username.trim();
+    if (!username) {
+      showMessage("error", "Escribe tu nombre de usuario para ingresar.");
+      return;
+    }
+    if (!formData.password) {
+      showMessage("error", "Escribe tu contraseña para ingresar.");
       return;
     }
 
@@ -102,8 +107,30 @@ function App() {
   // Maneja el envío del formulario de registro.
   const handleRegister = async (event) => {
     event.preventDefault();
-    if (!isValidEmail(formData.email)) {
+    const username = formData.username.trim();
+    const email = formData.email.trim();
+    if (!username) {
+      showMessage("error", "Escribe un nombre de usuario.");
+      return;
+    }
+    if (!isValidUsername(username)) {
+      showMessage("error", "El usuario debe tener entre 3 y 80 caracteres y solo puede usar letras, números, punto, guion o guion bajo.");
+      return;
+    }
+    if (!isValidEmail(email)) {
       showMessage("error", "Ingresa un correo electrónico válido.");
+      return;
+    }
+    if (formData.password.length < 8) {
+      showMessage("error", "La contraseña debe tener al menos 8 caracteres.");
+      return;
+    }
+    if (formData.password.length > 128) {
+      showMessage("error", "La contraseña no puede superar los 128 caracteres.");
+      return;
+    }
+    if (!formData.confirmPassword) {
+      showMessage("error", "Confirma tu contraseña para continuar.");
       return;
     }
     if (formData.password !== formData.confirmPassword) {
@@ -111,7 +138,7 @@ function App() {
       return;
     }
     try {
-      await api.register({ username: formData.username, email: formData.email, password: formData.password });
+      await api.register({ username, email, password: formData.password });
       showMessage("success", "Cuenta creada. Ya puedes iniciar sesión.");
       navigate("/gracias");
       setFormData(initialFormState);

@@ -3,20 +3,52 @@ import { api, mediaUrl } from "../utils/api.js";
 
 function CatalogPage({ onAdminLogin, onNavigate }) {
   const [search, setSearch] = useState("");
-  const [visibleItems, setVisibleItems] = useState([]);
+  const [selectedBrand, setSelectedBrand] = useState("Todas");
+  const [items, setItems] = useState([]);
+  const [selectedItem, setSelectedItem] = useState(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const loadParts = async () => {
       try {
-        setVisibleItems(await api.getParts(search.trim()));
+        setItems(await api.getParts());
         setError("");
       } catch (loadError) {
         setError(loadError.message);
       }
     };
     loadParts();
-  }, [search]);
+  }, []);
+
+  useEffect(() => {
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setSelectedItem(null);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, []);
+
+  const brands = [
+    "Todas",
+    ...Array.from(new Set(items.map((item) => item.brand_name?.trim()).filter(Boolean))).sort((first, second) => first.localeCompare(second)),
+  ];
+  const getBrandLogo = (brand) => {
+    if (brand === "Todas") return null;
+    const normalizedBrand = brand.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase();
+    const logoName = normalizedBrand === "jac" ? "jac-motors" : normalizedBrand;
+    const extension = logoName === "jac-motors" ? "png" : "svg";
+    return `/logos_marcas_costa_rica/${logoName}.${extension}`;
+  };
+  const normalizedSearch = search.trim().toLocaleLowerCase();
+  const visibleItems = items.filter((item) => {
+    const searchableText = [item.name, item.part_number, item.brand_name, item.compatible_models, item.years]
+      .filter(Boolean)
+      .join(" ")
+      .toLocaleLowerCase();
+    const matchesSearch = !normalizedSearch || searchableText.includes(normalizedSearch);
+    const matchesBrand = selectedBrand === "Todas" || item.brand_name === selectedBrand;
+    return matchesSearch && matchesBrand;
+  });
 
   const formatCurrency = (value) =>
     value.toLocaleString("es-ES", { style: "currency", currency: "USD" });
@@ -55,6 +87,24 @@ function CatalogPage({ onAdminLogin, onNavigate }) {
         <span>{visibleItems.length} repuestos encontrados</span>
       </div>
 
+      <div className="brand-filters" aria-label="Filtrar por marca">
+        <span className="brand-filters-label">Filtrar por marca</span>
+        <div className="brand-filter-buttons">
+          {brands.map((brand) => (
+            <button
+              key={brand}
+              type="button"
+              className={selectedBrand === brand ? "brand-filter-button active" : "brand-filter-button"}
+              aria-pressed={selectedBrand === brand}
+              onClick={() => setSelectedBrand(brand)}
+            >
+              {getBrandLogo(brand) && <img className="brand-filter-logo" src={getBrandLogo(brand)} alt="" aria-hidden="true" />}
+              {brand}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {error ? <div className="catalog-empty"><strong>{error}</strong><p>Verifica que la API y MySQL estén encendidos.</p></div> : visibleItems.length > 0 ? (
         <div className="table-wrapper catalog-table-wrapper">
           <table className="inventory-table catalog-table">
@@ -75,7 +125,20 @@ function CatalogPage({ onAdminLogin, onNavigate }) {
                 const available = item.stock > item.minimum_stock;
 
                 return (
-                  <tr key={item.part_number}>
+                  <tr
+                    key={item.part_number}
+                    className="catalog-clickable-row"
+                    role="button"
+                    tabIndex="0"
+                    onClick={() => setSelectedItem(item)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setSelectedItem(item);
+                      }
+                    }}
+                    aria-label={`Ver detalles de ${item.name}`}
+                  >
                     <td>
                       <div className="photo-gallery catalog-photo-gallery">
                         {item.photos.map((photo, index) => (
@@ -109,6 +172,44 @@ function CatalogPage({ onAdminLogin, onNavigate }) {
         <div className="catalog-empty">
           <strong>No encontramos ese repuesto</strong>
           <p>Prueba con otra marca, modelo o número de pieza.</p>
+        </div>
+      )}
+
+      {selectedItem && (
+        <div className="catalog-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedItem(null); }}>
+          <section className="catalog-modal" role="dialog" aria-modal="true" aria-labelledby="catalog-modal-title">
+            <div className="catalog-modal-header">
+              <div>
+                <span className="catalog-modal-eyebrow">Detalle del repuesto</span>
+                <h2 id="catalog-modal-title">{selectedItem.name}</h2>
+              </div>
+              <button type="button" className="modal-close-button" aria-label="Cerrar detalle" onClick={() => setSelectedItem(null)}>X</button>
+            </div>
+            <div className="catalog-modal-content">
+              <div className="catalog-modal-photos">
+                {selectedItem.photos.length > 0 ? selectedItem.photos.map((photo, index) => (
+                  <img key={photo} src={mediaUrl(photo)} className="catalog-modal-photo" alt={`${selectedItem.name}, foto ${index + 1}`} />
+                )) : (
+                  <div className="catalog-modal-no-photo">
+                    <strong>Este repuesto no tiene fotos todavía.</strong>
+                    <span>
+                      Llame al <a href="tel:85074949">8507 4949</a> para solicitar fotos de la pieza e indique el número de pieza: {selectedItem.part_number}.
+                    </span>
+                  </div>
+                )}
+              </div>
+              <dl className="catalog-modal-details">
+                <div><dt>Marca</dt><dd>{selectedItem.brand_name || "Sin marca"}</dd></div>
+                <div><dt>Número de pieza</dt><dd>{selectedItem.part_number}</dd></div>
+                <div><dt>Modelos compatibles</dt><dd>{selectedItem.compatible_models || "No indicado"}</dd></div>
+                <div><dt>Años</dt><dd>{selectedItem.years || "No indicado"}</dd></div>
+                <div><dt>Precio</dt><dd>{formatCurrency(Number(selectedItem.price))}</dd></div>
+                <div><dt>Disponibilidad</dt><dd>{selectedItem.stock > selectedItem.minimum_stock ? "Disponible" : "No disponible"}</dd></div>
+                <div><dt>Anaquel</dt><dd>{selectedItem.shelf || "No indicado"}</dd></div>
+                <div><dt>Proveedor</dt><dd>{selectedItem.supplier || "No indicado"}</dd></div>
+              </dl>
+            </div>
+          </section>
         </div>
       )}
 
