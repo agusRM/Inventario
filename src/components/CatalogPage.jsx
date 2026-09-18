@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, mediaUrl } from "../utils/api.js";
+import SiteFooter from "./SiteFooter.jsx";
 
 function CatalogPage({ onAdminLogin, onNavigate }) {
   const [search, setSearch] = useState("");
@@ -238,6 +239,7 @@ function CatalogPage({ onAdminLogin, onNavigate }) {
         <iframe className="location-map" title="Mapa de SuRepuesto en Palmares de Alajuela" src="https://www.google.com/maps?q=10.0460968,-84.4313736&z=18&output=embed" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
       </section>
       <a className="mobile-cta" href="tel:85074949">Llamar ahora · 8507 4949</a>
+      <SiteFooter />
     </section>
   );
 }

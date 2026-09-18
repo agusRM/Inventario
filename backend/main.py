@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import logging
 import os
 import secrets
 from io import BytesIO
@@ -26,6 +27,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-change-this-secret")
 SESSION_EXPIRE_MINUTES = int(os.getenv("SESSION_EXPIRE_MINUTES", "480"))
 
 app = FastAPI(title="SuRepuesto | Palmares API", version="1.0.0")
+logger = logging.getLogger("surepuesto.audit")
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", Path(__file__).parent / "uploads"))
 MAX_PHOTO_SIZE = 5 * 1024 * 1024
 MAX_PHOTOS_PER_PART = 8
@@ -267,12 +269,32 @@ def part_from_form(
         raise HTTPException(status_code=422, detail=str(error)) from error
 
 
+def save_part_audit_log(db: Session, user: models.User, part: models.Part, action: str):
+    audit_log = models.PartAuditLog(
+        user_id=user.id,
+        username=user.username,
+        action=action,
+        part_id=part.id,
+        part_number=part.part_number,
+        part_name=part.name,
+    )
+    db.add(audit_log)
+    logger.info(
+        "Usuario '%s' (id=%s) %s el repuesto '%s' (id=%s)",
+        user.username,
+        user.id,
+        action,
+        part.part_number,
+        part.id,
+    )
+
+
 @app.post("/parts", response_model=schemas.PartRead, status_code=201, tags=["parts"])
 def create_part(
     payload: schemas.PartCreate = Depends(part_from_form),
     photos: list[UploadFile] = File(default=[]),
     db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(get_current_user),
 ):
     values = payload.model_dump(exclude={"photos"})
     part = models.Part(**values)
@@ -280,7 +302,18 @@ def create_part(
     db.add(part)
     db.commit()
     db.refresh(part)
+    save_part_audit_log(db, current_user, part, "creó")
+    db.commit()
     return schemas.PartRead.from_part(part)
+
+
+@app.get("/parts/audit", response_model=list[schemas.PartAuditRead], tags=["parts"])
+def list_part_audit_logs(
+    db: Session = Depends(get_db),
+    _: models.User = Depends(require_admin),
+):
+    statement = select(models.PartAuditLog).order_by(models.PartAuditLog.created_at.desc())
+    return db.scalars(statement).all()
 
 
 @app.get("/parts/{part_id}", response_model=schemas.PartRead, tags=["parts"])
@@ -297,7 +330,7 @@ def update_part(
     payload: schemas.PartCreate = Depends(part_from_form),
     photos: list[UploadFile] = File(default=[]),
     db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(get_current_user),
 ):
     part = db.get(models.Part, part_id)
     if part is None:
@@ -308,6 +341,8 @@ def update_part(
         part.photos = save_uploaded_photos(photos)
     db.commit()
     db.refresh(part)
+    save_part_audit_log(db, current_user, part, "actualizó")
+    db.commit()
     return schemas.PartRead.from_part(part)
 
 

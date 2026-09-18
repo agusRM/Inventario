@@ -660,6 +660,21 @@ button {
   font-weight: 600;
 }
 
+.site-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(235, 245, 255, 0.62);
+  font-size: 0.86rem;
+}
+
+.site-footer strong {
+  color: #c7e9ff;
+}
+
 .catalog-back-button {
   margin-bottom: 18px;
 }
@@ -1094,6 +1109,7 @@ button {
   .catalog-modal-details dd { text-align: left; }
   .catalog-grid { grid-template-columns: 1fr; }
   .catalog-contact { align-items: flex-start; flex-direction: column; }
+  .site-footer { align-items: flex-start; flex-direction: column; }
   .info-cta { align-items: flex-start; flex-direction: column; }
   .location-section { grid-template-columns: 1fr; }
   .mobile-cta {

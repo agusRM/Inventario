@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
@@ -64,3 +64,15 @@ class PartRead(PartCreate):
     def from_part(cls, part):
         data = {column.name: getattr(part, column.name) for column in part.__table__.columns}
         return cls.model_validate(data)
+
+
+class PartAuditRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    user_id: int
+    username: str
+    action: str
+    part_id: int
+    part_number: str
+    part_name: str
+    created_at: datetime

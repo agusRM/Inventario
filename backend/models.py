@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import Date, JSON, Numeric, String, Text
@@ -33,3 +33,16 @@ class Part(Base):
     shelf: Mapped[str | None] = mapped_column(String(100))
     supplier: Mapped[str | None] = mapped_column(String(150))
     photos: Mapped[list[str]] = mapped_column(JSON, default=list)
+
+
+class PartAuditLog(Base):
+    __tablename__ = "part_audit_logs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(index=True)
+    username: Mapped[str] = mapped_column(String(80), index=True)
+    action: Mapped[str] = mapped_column(String(20))
+    part_id: Mapped[int] = mapped_column(index=True)
+    part_number: Mapped[str] = mapped_column(String(80))
+    part_name: Mapped[str] = mapped_column(String(180))
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow, index=True)

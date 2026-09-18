@@ -1,5 +1,6 @@
 import { useState } from "react";
 import PartMaintenance from "./PartMaintenance.jsx";
+import SiteFooter from "./SiteFooter.jsx";
 
 // Pantalla que se muestra después de iniciar sesión con éxito.
 function WelcomeScreen({ username, role, onLogout }) {
@@ -48,6 +49,7 @@ function WelcomeScreen({ username, role, onLogout }) {
       </div>
 
       {showInventory && <PartMaintenance role={role} />}
+      <SiteFooter />
     </section>
   );
 }
