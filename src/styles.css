@@ -843,6 +843,10 @@ button {
   color: #ffe7ea;
 }
 
+.auth-card .message-bar {
+  margin-top: 20px;
+}
+
 .summary-grid {
   display: grid;
   gap: 14px;
